@@ -1,5 +1,5 @@
 (() => {
-  const HEADER_SELECTOR = '.public-header, .topbar';
+  const HEADER_SELECTOR = '.public-header, .topbar, .app-shell-header';
 
   const getHeaderOffset = () => {
     const header = document.querySelector(HEADER_SELECTOR);

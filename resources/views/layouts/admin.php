@@ -33,36 +33,25 @@ $isEnterprise = str_starts_with($currentUri, '/admin/enterprise');
     <link rel="shortcut icon" type="image/png" href="<?= e(url('/assets/img/favicon-sigerd.png')) ?>">
     <link rel="stylesheet" href="<?= e(url('/assets/css/shared/app.css')) ?>">
 </head>
-<body class="public-body">
-<header class="public-header">
-    <div class="container container-wide public-header-inner">
-        <div class="public-brand-zone">
-            <a class="public-brand" href="<?= e(url('/admin')) ?>" aria-label="Area administrativa SaaS - inicio">
-                <img src="<?= e(url('/assets/img/logo-SIGERD-02.png')) ?>" alt="Logo do sistema" class="public-brand-logo">
-                <span class="public-brand-text">
-                    <strong>Area administrativa SaaS SIGERD</strong>
-                    <small><?= e((string) ($auth['nome_completo'] ?? '')) ?> | UF <?= e((string) ($auth['uf_sigla'] ?? 'N/A')) ?></small>
+<body class="public-body app-shell-body">
+<div class="app-shell">
+    <aside id="admin-main-nav" class="app-sidebar" data-nav-track>
+        <div class="app-sidebar-top">
+            <a class="app-sidebar-brand" href="<?= e(url('/admin')) ?>" aria-label="Area administrativa SaaS">
+                <img src="<?= e(url('/assets/img/logo-SIGERD-02.png')) ?>" alt="Logo do sistema" class="app-sidebar-logo">
+                <span>
+                    <strong>Area Administrativa SaaS</strong>
+                    <small>SIGERD</small>
                 </span>
             </a>
-
-            <button
-                class="menu-toggle public-menu-toggle"
-                type="button"
-                aria-expanded="false"
-                aria-controls="admin-main-nav"
-                data-menu-toggle
-                data-menu-target="admin-main-nav"
-                aria-label="Abrir menu principal"
-            >
-                <span class="menu-toggle-lines" aria-hidden="true">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </span>
-            </button>
+            <div class="app-sidebar-context">
+                <span class="tag">ADMIN</span>
+                <p><?= e((string) ($auth['nome_completo'] ?? '')) ?></p>
+                <p>UF <?= e((string) ($auth['uf_sigla'] ?? 'N/A')) ?></p>
+            </div>
         </div>
 
-        <nav id="admin-main-nav" class="public-nav" data-nav-track>
+        <nav class="app-sidebar-nav">
             <a class="<?= $isDashboard ? 'is-active' : '' ?>" href="<?= e(url('/admin')) ?>">Dashboard</a>
             <a class="<?= $isInstitucional ? 'is-active' : '' ?>" href="<?= e(url('/admin/institucional')) ?>">Institucional</a>
             <a class="<?= $isComercial ? 'is-active' : '' ?>" href="<?= e(url('/admin/comercial')) ?>">Comercial</a>
@@ -70,55 +59,64 @@ $isEnterprise = str_starts_with($currentUri, '/admin/enterprise');
             <a href="<?= e(url('/')) ?>">Pagina publica</a>
         </nav>
 
-        <div class="public-head-actions">
-            <span class="app-version">versao <?= e($appVersion) ?></span>
+        <div class="app-sidebar-bottom">
+            <span class="app-shell-version">versao <?= e($appVersion) ?></span>
             <form method="post" action="<?= e(url('/logout')) ?>" class="inline-form">
                 <?= App\Support\Csrf::field('auth_logout') ?>
-                <button type="submit" class="public-cta">Sair</button>
+                <button type="submit" class="app-sidebar-logout">Sair</button>
             </form>
         </div>
-    </div>
-</header>
-<main class="public-main">
-    <div class="container public-flash-stack">
-        <?php if (isset($flash['success'])): ?>
-            <div class="alert alert-success"><?= e((string) $flash['success']) ?></div>
-        <?php endif; ?>
-        <?php if (isset($flash['error'])): ?>
-            <div class="alert alert-error"><?= e((string) $flash['error']) ?></div>
-        <?php endif; ?>
-        <?php if (isset($flash['warning'])): ?>
-            <div class="alert alert-warning"><?= e((string) $flash['warning']) ?></div>
-        <?php endif; ?>
-    </div>
-    <div class="container">
-        <?= $content ?? '' ?>
-    </div>
-</main>
-<footer class="public-footer">
-    <div class="container container-wide public-footer-inner">
-        <div class="public-footer-brand">
-            <img src="<?= e(url('/assets/img/logo-SIGERD-02.png')) ?>" alt="Logo do sistema" class="public-footer-logo">
-            <div class="public-footer-copy">
-                <strong>Sistema Integrado de Gerenciamento de Riscos e Desastres</strong>
-                <p>Area administrativa SaaS para governanca institucional, comercial e enterprise.</p>
+    </aside>
+
+    <div class="app-shell-content">
+        <header class="app-shell-header">
+            <div class="app-shell-header-main">
+                <button
+                    class="menu-toggle app-shell-toggle"
+                    type="button"
+                    aria-expanded="false"
+                    aria-controls="admin-main-nav"
+                    data-menu-toggle
+                    data-menu-target="admin-main-nav"
+                    aria-label="Abrir menu principal"
+                >
+                    <span class="menu-toggle-lines" aria-hidden="true">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </span>
+                </button>
+                <div class="app-shell-title">
+                    <strong>Painel Administrativo SaaS</strong>
+                    <span>Gestao institucional, comercial e enterprise</span>
+                </div>
             </div>
-        </div>
+            <span class="app-shell-version app-shell-version--header">versao <?= e($appVersion) ?></span>
+        </header>
 
-        <div class="public-footer-links">
-            <a href="<?= e(url('/admin')) ?>">Dashboard</a>
-            <a href="<?= e(url('/admin/institucional')) ?>">Institucional</a>
-            <a href="<?= e(url('/admin/comercial')) ?>">Comercial</a>
-            <a href="<?= e(url('/admin/enterprise')) ?>">Enterprise</a>
-        </div>
+        <main class="app-shell-main">
+            <div class="container public-flash-stack">
+                <?php if (isset($flash['success'])): ?>
+                    <div class="alert alert-success"><?= e((string) $flash['success']) ?></div>
+                <?php endif; ?>
+                <?php if (isset($flash['error'])): ?>
+                    <div class="alert alert-error"><?= e((string) $flash['error']) ?></div>
+                <?php endif; ?>
+                <?php if (isset($flash['warning'])): ?>
+                    <div class="alert alert-warning"><?= e((string) $flash['warning']) ?></div>
+                <?php endif; ?>
+            </div>
+            <div class="container">
+                <?= $content ?? '' ?>
+            </div>
+        </main>
 
-        <div class="public-footer-meta">
+        <footer class="app-shell-footer">
             <span>SIGERD administrativo</span>
-            <span>versao <?= e($appVersion) ?></span>
             <span><?= e(date('Y')) ?>. Todos os direitos reservados.</span>
-        </div>
+        </footer>
     </div>
-</footer>
+</div>
 <button type="button" class="scroll-top-btn" data-scroll-top aria-label="Voltar ao topo">
     <span aria-hidden="true">&#8593;</span>
 </button>
