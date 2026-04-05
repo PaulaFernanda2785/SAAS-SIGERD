@@ -885,6 +885,19 @@ th {
     color: #184673;
 }
 
+.institution-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.55rem;
+}
+
+.institution-guide-trigger {
+    padding: 0.44rem 0.68rem;
+    font-size: 0.76rem;
+    white-space: nowrap;
+}
+
 .institution-table-card table td {
     min-width: 120px;
 }
@@ -1018,6 +1031,102 @@ th {
     flex-wrap: wrap;
     justify-content: flex-end;
     gap: 0.5rem;
+}
+
+.institution-modal-guide .institution-modal-dialog {
+    width: min(980px, 94vw);
+    max-height: 86vh;
+    overflow: auto;
+    overscroll-behavior: contain;
+}
+
+.profile-guide-grid {
+    margin-top: 0.75rem;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.7rem;
+}
+
+.profile-guide-card {
+    border: 1px solid #d5e2f1;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #fbfdff 0%, #f2f7ff 100%);
+    padding: 0.8rem;
+    display: grid;
+    gap: 0.45rem;
+}
+
+.profile-guide-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.45rem;
+}
+
+.profile-guide-card h4 {
+    margin: 0;
+    color: #173e69;
+    font-family: "Space Grotesk", "Manrope", sans-serif;
+    font-size: 0.92rem;
+}
+
+.profile-guide-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    padding: 0.2rem 0.55rem;
+    border: 1px solid #c9d9ec;
+    font-size: 0.69rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.profile-guide-status.is-active {
+    color: #0f5f30;
+    background: #e8f8ee;
+    border-color: #b7e1c5;
+}
+
+.profile-guide-status.is-inactive {
+    color: #7b2830;
+    background: #fdecef;
+    border-color: #f4c4cc;
+}
+
+.profile-guide-card p {
+    margin: 0;
+    color: #2f4f72;
+    font-size: 0.83rem;
+}
+
+.profile-guide-columns {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+}
+
+.profile-guide-columns h5 {
+    margin: 0;
+    color: #1b476f;
+    font-size: 0.79rem;
+}
+
+.profile-guide-list {
+    margin: 0.3rem 0 0;
+    padding-left: 1rem;
+    color: #375779;
+    font-size: 0.8rem;
+    display: grid;
+    gap: 0.18rem;
+}
+
+.profile-guide-note {
+    margin: 0;
+    padding-top: 0.45rem;
+    border-top: 1px dashed #cfe0f1;
+    color: #5e7390;
+    font-size: 0.76rem;
 }
 
 .onboarding-summary-card {
@@ -1782,6 +1891,10 @@ th {
     .institution-panel-grid {
         grid-template-columns: 1fr;
     }
+
+    .profile-guide-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 760px) {
@@ -1851,6 +1964,19 @@ th {
         justify-content: center;
         gap: 0.25rem;
         padding: 0.6rem 0;
+    }
+
+    .institution-card-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .institution-guide-trigger {
+        width: 100%;
+    }
+
+    .profile-guide-columns {
+        grid-template-columns: 1fr;
     }
 }
 

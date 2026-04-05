@@ -33,6 +33,7 @@ final class InstitutionController
         $isAdminMaster = $this->isAdminMaster($auth);
         $currentUf = $this->resolveUfFilter($request, $auth);
         $activeTab = $this->resolveTab((string) $request->input('aba', 'contas'));
+        $profiles = $repository->perfis();
 
         return Response::view('admin/institutions', [
             'title' => 'Gestao Institucional',
@@ -41,7 +42,8 @@ final class InstitutionController
             'orgaos' => $repository->orgaos($currentUf),
             'unidades' => $repository->unidades($currentUf),
             'usuarios' => $repository->usuarios($currentUf),
-            'perfis' => $repository->perfis(),
+            'perfis' => $profiles,
+            'profileGuide' => $this->buildProfileGuide($profiles),
             'vinculos' => $repository->vinculosUsuarioPerfil($currentUf),
             'options' => $repository->contextOptions($currentUf),
             'currentUfFilter' => $currentUf,
@@ -768,6 +770,171 @@ final class InstitutionController
         }
 
         throw new RuntimeException('Acao invalida para vinculo.');
+    }
+
+    private function buildProfileGuide(array $profiles): array
+    {
+        $catalog = [
+            UserProfile::ADMIN_MASTER => [
+                'descricao' => 'Administrador master da plataforma com governanca ampla.',
+                'pode' => [
+                    'Gerenciar estrutura institucional (contas, orgaos, unidades, usuarios e vinculos).',
+                    'Atuar em multiplos UFs e manter padroes institucionais da plataforma.',
+                    'Gerenciar recursos administrativos, enterprise e operacionais quando habilitados.',
+                ],
+                'nao_pode' => [
+                    'Nao ignora modulos nao contratados para a conta.',
+                    'Nao substitui trilha de auditoria nem politicas de seguranca.',
+                ],
+                'observacao' => 'Perfil recomendado para administracao central do SaaS.',
+            ],
+            UserProfile::ADMIN_ORGAO => [
+                'descricao' => 'Administrador institucional focado na operacao do orgao.',
+                'pode' => [
+                    'Gerenciar estrutura institucional e usuarios do contexto permitido.',
+                    'Atualizar perfis, vinculos e configuracoes administrativas do orgao.',
+                    'Operar recursos enterprise liberados para o orgao.',
+                ],
+                'nao_pode' => [
+                    'Nao opera fora do UF de contexto definido.',
+                    'Nao possui escopo global da plataforma como ADMIN_MASTER.',
+                ],
+                'observacao' => 'Ideal para equipe de administracao local do orgao.',
+            ],
+            UserProfile::FINANCEIRO => [
+                'descricao' => 'Perfil focado em rotinas financeiras, SLA e suporte institucional.',
+                'pode' => [
+                    'Acessar visoes financeiras, analytics e governanca de SLA/suporte.',
+                    'Acompanhar indicadores executivos permitidos para a conta.',
+                    'Atuar em fluxos enterprise ligados a contratos e suporte.',
+                ],
+                'nao_pode' => [
+                    'Nao gerencia API, automacoes e integracoes tecnicas avancadas.',
+                    'Nao administra estrutura institucional completa como ADMIN_MASTER.',
+                ],
+                'observacao' => 'Recomendado para responsaveis financeiros e contratos.',
+            ],
+            UserProfile::SUPORTE => [
+                'descricao' => 'Perfil tecnico para suporte, API, integracoes e automacoes.',
+                'pode' => [
+                    'Gerenciar API enterprise, integracoes externas e automacoes.',
+                    'Atuar em SLA, tickets e assinatura digital conforme modulos liberados.',
+                    'Apoiar ajustes tecnicos operacionais e administrativos.',
+                ],
+                'nao_pode' => [
+                    'Nao substitui governanca global do ADMIN_MASTER.',
+                    'Nao acessa modulos nao contratados para a conta.',
+                ],
+                'observacao' => 'Indicado para equipe de suporte tecnico e sustentacao.',
+            ],
+            UserProfile::GESTOR => [
+                'descricao' => 'Perfil de lideranca da operacao com amplo alcance funcional.',
+                'pode' => [
+                    'Abrir incidentes e registrar briefing, comando, periodos e diarios operacionais.',
+                    'Gerenciar PLANCON, governanca operacional, documentos e relatorios avancados.',
+                    'Acessar inteligencia operacional e acompanhar execucao tatico-estrategica.',
+                ],
+                'nao_pode' => [
+                    'Nao gerencia estrutura administrativa do SaaS por padrao.',
+                    'Nao acessa modulos operacionais nao liberados pelo plano.',
+                ],
+                'observacao' => 'Recomendado para decisores e lideres de resposta.',
+            ],
+            UserProfile::COORDENADOR => [
+                'descricao' => 'Coordena resposta operacional com forte capacidade de execucao.',
+                'pode' => [
+                    'Abrir incidentes e manter registros operacionais completos.',
+                    'Gerenciar comando, PLANCON, governanca e documentos da resposta.',
+                    'Acompanhar inteligencia operacional e relatorios.',
+                ],
+                'nao_pode' => [
+                    'Nao possui governanca administrativa global da plataforma.',
+                    'Nao acessa recursos fora do escopo liberado para a conta.',
+                ],
+                'observacao' => 'Perfil indicado para coordenacao diaria de operacoes.',
+            ],
+            UserProfile::ANALISTA => [
+                'descricao' => 'Perfil analitico com atuacao tecnica e documental robusta.',
+                'pode' => [
+                    'Abrir incidentes, periodos e registros operacionais com apoio analitico.',
+                    'Atuar em PLANCON, inteligencia, governanca e documentos.',
+                    'Ler documentos privados de outros usuarios conforme politica operacional.',
+                ],
+                'nao_pode' => [
+                    'Nao possui autoridade administrativa de conta/orgao por padrao.',
+                    'Nao executa recursos fora dos modulos contratados.',
+                ],
+                'observacao' => 'Indicado para analise tecnica e monitoramento.',
+            ],
+            UserProfile::OPERADOR => [
+                'descricao' => 'Perfil de execucao operacional com foco em campo e registro.',
+                'pode' => [
+                    'Abrir incidentes e registrar briefing, periodos, diarios e documentos.',
+                    'Atuar em modulos operacionais e acompanhamento de indicadores.',
+                    'Contribuir com atualizacao continua da situacao operacional.',
+                ],
+                'nao_pode' => [
+                    'Nao acessa governanca operacional restrita (aceites/termos) por padrao.',
+                    'Nao possui acesso administrativo institucional amplo.',
+                ],
+                'observacao' => 'Perfil recomendado para equipes de execucao operacional.',
+            ],
+            UserProfile::LEITOR => [
+                'descricao' => 'Perfil de consulta para acompanhamento e leitura.',
+                'pode' => [
+                    'Visualizar incidentes, PLANCON, inteligencia, documentos e relatorios.',
+                    'Acompanhar indicadores e historicos sem alterar fluxos principais.',
+                ],
+                'nao_pode' => [
+                    'Nao abre incidentes nem cria registros operacionais.',
+                    'Nao envia documentos nem altera configuracoes.',
+                ],
+                'observacao' => 'Ideal para monitoramento, auditoria e visao executiva.',
+            ],
+            UserProfile::CONVIDADO => [
+                'descricao' => 'Acesso restrito para consulta controlada.',
+                'pode' => [
+                    'Autenticar e acessar recursos explicitamente liberados ao convite.',
+                    'Consultar informacoes basicas quando permitido por modulo e escopo.',
+                ],
+                'nao_pode' => [
+                    'Nao administra estrutura institucional.',
+                    'Nao opera fluxos operacionais completos por padrao.',
+                ],
+                'observacao' => 'Use em acessos temporarios ou acompanhamentos pontuais.',
+            ],
+        ];
+
+        $guide = [];
+        foreach ($profiles as $profile) {
+            $profileName = strtoupper(trim((string) ($profile['nome_perfil'] ?? '')));
+            if ($profileName === '') {
+                continue;
+            }
+
+            $meta = $catalog[$profileName] ?? [
+                'descricao' => 'Perfil personalizado criado para necessidades especificas da instituicao.',
+                'pode' => [
+                    'Atuar conforme os modulos contratados e configuracoes aplicadas ao perfil.',
+                ],
+                'nao_pode' => [
+                    'Nao acessa funcionalidades sem permissao explicita ou fora do escopo definido.',
+                ],
+                'observacao' => 'Valide os vinculos e o escopo antes de atribuir este perfil a usuarios.',
+            ];
+
+            $databaseDescription = trim((string) ($profile['descricao'] ?? ''));
+            $guide[] = [
+                'nome_perfil' => $profileName,
+                'descricao' => $databaseDescription !== '' ? $databaseDescription : (string) $meta['descricao'],
+                'status_perfil' => (string) ($profile['status_perfil'] ?? ''),
+                'pode' => is_array($meta['pode']) ? $meta['pode'] : [],
+                'nao_pode' => is_array($meta['nao_pode']) ? $meta['nao_pode'] : [],
+                'observacao' => (string) ($meta['observacao'] ?? ''),
+            ];
+        }
+
+        return $guide;
     }
 
     private function repository(): InstitutionRepository

@@ -7,6 +7,7 @@ $orgaos = $orgaos ?? [];
 $unidades = $unidades ?? [];
 $usuarios = $usuarios ?? [];
 $perfis = $perfis ?? [];
+$profileGuide = $profileGuide ?? [];
 $vinculos = $vinculos ?? [];
 $options = $options ?? [];
 $currentUfFilter = $currentUfFilter ?? null;
@@ -625,7 +626,10 @@ $tabs = [
         <section id="tab-panel-perfis" class="institution-panel" data-tab-panel="perfis" role="tabpanel">
             <div class="institution-panel-grid">
                 <article class="landing-card institution-form-card">
-                    <h3>Novo perfil</h3>
+                    <div class="institution-card-header">
+                        <h3>Novo perfil</h3>
+                        <button type="button" class="button button-secondary institution-guide-trigger" data-profile-guide-open>Guia de perfis</button>
+                    </div>
                     <form method="post" action="<?= e(url('/admin/institucional/perfis')) ?>" data-guard-submit="true">
                         <?= App\Support\Csrf::field('admin_perfil_create') ?>
                         <?php if ($currentUfFilter !== null): ?><input type="hidden" name="uf" value="<?= e((string) $currentUfFilter) ?>"><?php endif; ?>
@@ -856,6 +860,63 @@ $tabs = [
     </div>
 </div>
 
+<div class="institution-modal institution-modal-guide" data-profile-guide-modal hidden>
+    <div class="institution-modal-backdrop" data-profile-guide-close></div>
+    <div class="institution-modal-dialog institution-modal-dialog-guide" role="dialog" aria-modal="true" aria-labelledby="profile-guide-title">
+        <h3 id="profile-guide-title">Guia de perfis e responsabilidades</h3>
+        <p class="muted">Use este resumo para identificar o melhor perfil antes de vincular usuarios. Perfis novos criados pelo ADMIN_MASTER aparecem automaticamente aqui.</p>
+
+        <?php if ($profileGuide === []): ?>
+            <p class="muted">Nenhum perfil disponivel para exibicao no momento.</p>
+        <?php else: ?>
+            <div class="profile-guide-grid">
+                <?php foreach ($profileGuide as $guide): ?>
+                    <?php
+                        $statusPerfil = strtoupper((string) ($guide['status_perfil'] ?? ''));
+                        $statusClass = $statusPerfil === 'ATIVO' ? 'is-active' : 'is-inactive';
+                        $pode = is_array($guide['pode'] ?? null) ? $guide['pode'] : [];
+                        $naoPode = is_array($guide['nao_pode'] ?? null) ? $guide['nao_pode'] : [];
+                    ?>
+                    <article class="profile-guide-card">
+                        <header class="profile-guide-card-header">
+                            <h4><?= e((string) ($guide['nome_perfil'] ?? 'PERFIL')) ?></h4>
+                            <span class="profile-guide-status <?= e($statusClass) ?>"><?= e($statusPerfil !== '' ? $statusPerfil : 'N/A') ?></span>
+                        </header>
+                        <p><?= e((string) ($guide['descricao'] ?? 'Sem descricao cadastrada.')) ?></p>
+
+                        <div class="profile-guide-columns">
+                            <section>
+                                <h5>Pode</h5>
+                                <ul class="profile-guide-list">
+                                    <?php foreach ($pode as $item): ?>
+                                        <li><?= e((string) $item) ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </section>
+                            <section>
+                                <h5>Nao pode</h5>
+                                <ul class="profile-guide-list">
+                                    <?php foreach ($naoPode as $item): ?>
+                                        <li><?= e((string) $item) ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            </section>
+                        </div>
+
+                        <?php if (trim((string) ($guide['observacao'] ?? '')) !== ''): ?>
+                            <p class="profile-guide-note"><?= e((string) $guide['observacao']) ?></p>
+                        <?php endif; ?>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+
+        <div class="institution-modal-actions">
+            <button type="button" class="button button-secondary" data-profile-guide-close>Fechar</button>
+        </div>
+    </div>
+</div>
+
 <script>
 (() => {
     const shell = document.querySelector('[data-institution-tabs]');
@@ -885,33 +946,50 @@ $tabs = [
     }
 
     const modal = document.querySelector('[data-delete-modal]');
-    if (!modal) {
-        return;
+    if (modal) {
+        const inputEntity = modal.querySelector('[data-delete-entity]');
+        const inputEntityId = modal.querySelector('[data-delete-entity-id]');
+        const inputTab = modal.querySelector('[data-delete-tab]');
+        const label = modal.querySelector('[data-delete-entity-label]');
+
+        const closeModal = () => {
+            modal.hidden = true;
+            modal.classList.remove('is-open');
+        };
+
+        document.querySelectorAll('[data-delete-open]').forEach((button) => {
+            button.addEventListener('click', () => {
+                inputEntity.value = button.getAttribute('data-entity') || '';
+                inputEntityId.value = button.getAttribute('data-entity-id') || '';
+                inputTab.value = button.getAttribute('data-tab') || 'contas';
+                label.textContent = button.getAttribute('data-entity-label') || 'Item selecionado';
+                modal.hidden = false;
+                modal.classList.add('is-open');
+            });
+        });
+
+        modal.querySelectorAll('[data-delete-close]').forEach((button) => {
+            button.addEventListener('click', closeModal);
+        });
     }
 
-    const inputEntity = modal.querySelector('[data-delete-entity]');
-    const inputEntityId = modal.querySelector('[data-delete-entity-id]');
-    const inputTab = modal.querySelector('[data-delete-tab]');
-    const label = modal.querySelector('[data-delete-entity-label]');
+    const profileGuideModal = document.querySelector('[data-profile-guide-modal]');
+    if (profileGuideModal) {
+        const closeGuideModal = () => {
+            profileGuideModal.hidden = true;
+            profileGuideModal.classList.remove('is-open');
+        };
 
-    const closeModal = () => {
-        modal.hidden = true;
-        modal.classList.remove('is-open');
-    };
-
-    document.querySelectorAll('[data-delete-open]').forEach((button) => {
-        button.addEventListener('click', () => {
-            inputEntity.value = button.getAttribute('data-entity') || '';
-            inputEntityId.value = button.getAttribute('data-entity-id') || '';
-            inputTab.value = button.getAttribute('data-tab') || 'contas';
-            label.textContent = button.getAttribute('data-entity-label') || 'Item selecionado';
-            modal.hidden = false;
-            modal.classList.add('is-open');
+        document.querySelectorAll('[data-profile-guide-open]').forEach((button) => {
+            button.addEventListener('click', () => {
+                profileGuideModal.hidden = false;
+                profileGuideModal.classList.add('is-open');
+            });
         });
-    });
 
-    modal.querySelectorAll('[data-delete-close]').forEach((button) => {
-        button.addEventListener('click', closeModal);
-    });
+        profileGuideModal.querySelectorAll('[data-profile-guide-close]').forEach((button) => {
+            button.addEventListener('click', closeGuideModal);
+        });
+    }
 })();
 </script>
