@@ -175,6 +175,10 @@
 
       nav.querySelectorAll('a').forEach((link) => {
         link.addEventListener('click', () => {
+          if (link.getAttribute('target') === '_blank') {
+            return;
+          }
+
           nav.querySelectorAll('a.is-active').forEach((active) => {
             active.classList.remove('is-active');
           });

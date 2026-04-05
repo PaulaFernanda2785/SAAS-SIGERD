@@ -49,11 +49,16 @@ final class UserRepository
 
     public function profileCodes(int $userId): array
     {
+        $extraFilter = '';
+        if ($this->columnExists('usuarios_perfis', 'status_vinculo')) {
+            $extraFilter = ' AND up.status_vinculo = \'ATIVO\'';
+        }
+
         $sql = 'SELECT p.nome_perfil
                 FROM usuarios_perfis up
                 INNER JOIN perfis p ON p.id = up.perfil_id
                 WHERE up.usuario_id = :usuario_id
-                  AND p.status_perfil = \'ATIVO\'';
+                  AND p.status_perfil = \'ATIVO\'' . $extraFilter;
 
         $statement = $this->pdo()->prepare($sql);
         $statement->execute(['usuario_id' => $userId]);
@@ -113,6 +118,23 @@ final class UserRepository
                AND table_name = :table_name'
         );
         $statement->execute(['table_name' => $tableName]);
+
+        return ((int) $statement->fetchColumn()) > 0;
+    }
+
+    private function columnExists(string $tableName, string $columnName): bool
+    {
+        $statement = $this->pdo()->prepare(
+            'SELECT COUNT(*)
+             FROM information_schema.columns
+             WHERE table_schema = DATABASE()
+               AND table_name = :table_name
+               AND column_name = :column_name'
+        );
+        $statement->execute([
+            'table_name' => $tableName,
+            'column_name' => $columnName,
+        ]);
 
         return ((int) $statement->fetchColumn()) > 0;
     }

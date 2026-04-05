@@ -16,6 +16,7 @@ $router->post('/admin/institucional/unidades', [InstitutionController::class, 's
 $router->post('/admin/institucional/usuarios', [InstitutionController::class, 'storeUsuario'], ['authenticate', 'area.admin', 'csrf']);
 $router->post('/admin/institucional/perfis', [InstitutionController::class, 'storePerfil'], ['authenticate', 'area.admin', 'csrf']);
 $router->post('/admin/institucional/vinculos', [InstitutionController::class, 'attachPerfil'], ['authenticate', 'area.admin', 'csrf']);
+$router->post('/admin/institucional/acoes', [InstitutionController::class, 'entityAction'], ['authenticate', 'area.admin', 'csrf']);
 
 $router->get('/admin/comercial', [CommercialController::class, 'index'], ['authenticate', 'area.admin']);
 $router->post('/admin/comercial/planos', [CommercialController::class, 'storePlan'], ['authenticate', 'area.admin', 'csrf']);

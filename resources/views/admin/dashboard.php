@@ -72,30 +72,30 @@ declare(strict_types=1);
         <article class="landing-feature">
             <h3>Institucional</h3>
             <p>Cadastro e manutencao de contas, orgaos, unidades, usuarios e perfis.</p>
-            <ul>
-                <li><a href="<?= e(url('/admin/institucional')) ?>">Ir para modulo institucional</a></li>
-            </ul>
+            <div class="landing-shortcut-actions">
+                <a class="landing-shortcut-link" href="<?= e(url('/admin/institucional')) ?>">Acessar modulo institucional</a>
+            </div>
         </article>
         <article class="landing-feature">
             <h3>Comercial</h3>
             <p>Gestao de catalogo de planos, assinaturas, modulos e regras de contratacao.</p>
-            <ul>
-                <li><a href="<?= e(url('/admin/comercial')) ?>">Ir para modulo comercial</a></li>
-            </ul>
+            <div class="landing-shortcut-actions">
+                <a class="landing-shortcut-link" href="<?= e(url('/admin/comercial')) ?>">Acessar modulo comercial</a>
+            </div>
         </article>
         <article class="landing-feature">
             <h3>Enterprise</h3>
             <p>Configuracao de features avancadas, apps de API, integracoes e automacoes.</p>
-            <ul>
-                <li><a href="<?= e(url('/admin/enterprise')) ?>">Ir para modulo enterprise</a></li>
-            </ul>
+            <div class="landing-shortcut-actions">
+                <a class="landing-shortcut-link" href="<?= e(url('/admin/enterprise')) ?>">Acessar modulo enterprise</a>
+            </div>
         </article>
         <article class="landing-feature">
             <h3>Experiencia publica</h3>
             <p>Validacao da pagina de planos visivel para contas interessadas no servico.</p>
-            <ul>
-                <li><a href="<?= e(url('/planos')) ?>">Abrir pagina publica de planos</a></li>
-            </ul>
+            <div class="landing-shortcut-actions">
+                <a class="landing-shortcut-link" href="<?= e(url('/planos')) ?>" target="_blank" rel="noopener noreferrer">Abrir pagina publica de planos</a>
+            </div>
         </article>
     </div>
 </section>

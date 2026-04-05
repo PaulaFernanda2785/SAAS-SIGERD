@@ -4,8 +4,37 @@ declare(strict_types=1);
 
 $title = $title ?? 'Area Operacional';
 $auth = $_SESSION['auth'] ?? [];
+$profiles = is_array($auth['perfis'] ?? null) ? $auth['perfis'] : [];
+$modules = is_array($auth['modulos_liberados'] ?? null) ? $auth['modulos_liberados'] : [];
+$operationalPolicy = new App\Policies\OperationalPolicy();
+$canAccessOperational = in_array('OPERATIONAL', $modules, true) && $operationalPolicy->canAccessModule($profiles);
+$canAccessPlancon = in_array('PLANCON', $modules, true) && $operationalPolicy->canAccessPlancon($profiles);
+$canAccessDisaster = in_array('DISASTER_EXPANSION', $modules, true) && $operationalPolicy->canAccessDisasterExpansion($profiles);
+$canAccessIntelligence = in_array('INTELLIGENCE', $modules, true) && $operationalPolicy->canAccessIntelligence($profiles);
+$canAccessDocuments = in_array('DOCUMENTS', $modules, true) && $operationalPolicy->canAccessDocuments($profiles);
+$canAccessGovernance = in_array('GOVERNANCE', $modules, true) && $operationalPolicy->canAccessGovernance($profiles);
+$canAccessAdvancedReports = in_array('ADV_REPORTS', $modules, true) && $operationalPolicy->canAccessAdvancedReports($profiles);
+$canAccessReports = $canAccessOperational;
+$reportsHref = $canAccessAdvancedReports ? '/operational/relatorios/avancado' : '/operational/relatorios/basico';
 $scopeList = is_array($auth['escopos'] ?? null) ? $auth['escopos'] : [];
-$scopeLabel = $scopeList !== [] ? implode(', ', $scopeList) : 'PROPRIO_ORGAO';
+$scopeLabelMap = [
+    'PROPRIA_UNIDADE' => 'Propria unidade',
+    'PROPRIO_ORGAO' => 'Proprio orgao',
+    'MUNICIPAL' => 'Municipal',
+    'REGIONAL' => 'Regional',
+    'ESTADUAL' => 'Estadual',
+    'MULTIINSTITUCIONAL' => 'Multiinstitucional',
+    'GLOBAL' => 'Global',
+];
+$formattedScopes = [];
+foreach ($scopeList as $scopeValue) {
+    $scopeKey = strtoupper(trim((string) $scopeValue));
+    if ($scopeKey === '') {
+        continue;
+    }
+    $formattedScopes[] = $scopeLabelMap[$scopeKey] ?? $scopeKey;
+}
+$scopeLabel = $formattedScopes !== [] ? implode(' | ', array_values(array_unique($formattedScopes))) : 'Proprio orgao';
 $currentUri = (string) parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
 $flash = App\Support\Flash::all();
 $appVersion = (string) config('app.version', '1.0.0');
@@ -49,15 +78,40 @@ if (
         </div>
 
         <nav class="app-sidebar-nav">
-            <a class="<?= $currentUri === '/operational' ? 'is-active' : '' ?>" href="<?= e(url('/operational')) ?>">Dashboard</a>
-            <a class="<?= str_starts_with($currentUri, '/operational/incidentes') ? 'is-active' : '' ?>" href="<?= e(url('/operational/incidentes')) ?>">Incidentes</a>
-            <a class="<?= str_starts_with($currentUri, '/operational/plancon') ? 'is-active' : '' ?>" href="<?= e(url('/operational/plancon')) ?>">PLANCON</a>
-            <a class="<?= str_starts_with($currentUri, '/operational/desastres') ? 'is-active' : '' ?>" href="<?= e(url('/operational/desastres')) ?>">Desastres</a>
-            <a class="<?= str_starts_with($currentUri, '/operational/inteligencia') ? 'is-active' : '' ?>" href="<?= e(url('/operational/inteligencia')) ?>">Inteligencia</a>
-            <a class="<?= str_starts_with($currentUri, '/operational/documentos') ? 'is-active' : '' ?>" href="<?= e(url('/operational/documentos')) ?>">Documentos</a>
-            <a class="<?= str_starts_with($currentUri, '/operational/governanca') ? 'is-active' : '' ?>" href="<?= e(url('/operational/governanca')) ?>">Governanca</a>
-            <a class="<?= str_starts_with($currentUri, '/operational/relatorios') ? 'is-active' : '' ?>" href="<?= e(url('/operational/relatorios/avancado')) ?>">Relatorios</a>
-            <a href="<?= e(url('/')) ?>">Pagina publica</a>
+            <?php if ($canAccessOperational): ?>
+                <a class="<?= $currentUri === '/operational' ? 'is-active' : '' ?>" href="<?= e(url('/operational')) ?>">Dashboard</a>
+                <a class="<?= str_starts_with($currentUri, '/operational/incidentes') ? 'is-active' : '' ?>" href="<?= e(url('/operational/incidentes')) ?>">Incidentes</a>
+            <?php endif; ?>
+            <?php if ($canAccessPlancon): ?>
+                <a class="<?= str_starts_with($currentUri, '/operational/plancon') ? 'is-active' : '' ?>" href="<?= e(url('/operational/plancon')) ?>">PLANCON</a>
+            <?php endif; ?>
+            <?php if ($canAccessDisaster): ?>
+                <a class="<?= str_starts_with($currentUri, '/operational/desastres') ? 'is-active' : '' ?>" href="<?= e(url('/operational/desastres')) ?>">Desastres</a>
+            <?php endif; ?>
+            <?php if ($canAccessIntelligence): ?>
+                <a class="<?= str_starts_with($currentUri, '/operational/inteligencia') ? 'is-active' : '' ?>" href="<?= e(url('/operational/inteligencia')) ?>">Inteligencia</a>
+            <?php endif; ?>
+            <?php if ($canAccessDocuments): ?>
+                <a class="<?= str_starts_with($currentUri, '/operational/documentos') ? 'is-active' : '' ?>" href="<?= e(url('/operational/documentos')) ?>">Documentos</a>
+            <?php endif; ?>
+            <?php if ($canAccessGovernance): ?>
+                <a class="<?= str_starts_with($currentUri, '/operational/governanca') ? 'is-active' : '' ?>" href="<?= e(url('/operational/governanca')) ?>">Governanca</a>
+            <?php endif; ?>
+            <?php if ($canAccessReports): ?>
+                <a class="<?= str_starts_with($currentUri, '/operational/relatorios') ? 'is-active' : '' ?>" href="<?= e(url($reportsHref)) ?>">Relatorios</a>
+            <?php endif; ?>
+            <?php if (
+                !$canAccessOperational
+                && !$canAccessPlancon
+                && !$canAccessDisaster
+                && !$canAccessIntelligence
+                && !$canAccessDocuments
+                && !$canAccessGovernance
+                && !$canAccessReports
+            ): ?>
+                <span class="app-sidebar-nav-empty">Nenhum modulo operacional liberado para o plano atual.</span>
+            <?php endif; ?>
+            <a href="<?= e(url('/')) ?>" target="_blank" rel="noopener noreferrer">Pagina publica (nova guia)</a>
         </nav>
 
         <div class="app-sidebar-bottom">

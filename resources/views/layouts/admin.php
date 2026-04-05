@@ -6,6 +6,11 @@ $title = $title ?? 'Area Administrativa';
 $auth = $_SESSION['auth'] ?? [];
 $flash = App\Support\Flash::all();
 $appVersion = (string) config('app.version', '1.0.0');
+$profiles = is_array($auth['perfis'] ?? null) ? $auth['perfis'] : [];
+$modules = is_array($auth['modulos_liberados'] ?? null) ? $auth['modulos_liberados'] : [];
+$hasAdminModule = in_array('ADMIN', $modules, true);
+$canSeeEnterprise = in_array('ENTERPRISE_CORE', $modules, true)
+    && (new App\Policies\AdminEnterprisePolicy())->canAccess($profiles);
 $currentUri = (string) parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
 $basePath = app_base_path();
 if (
@@ -52,11 +57,18 @@ $isEnterprise = str_starts_with($currentUri, '/admin/enterprise');
         </div>
 
         <nav class="app-sidebar-nav">
-            <a class="<?= $isDashboard ? 'is-active' : '' ?>" href="<?= e(url('/admin')) ?>">Dashboard</a>
-            <a class="<?= $isInstitucional ? 'is-active' : '' ?>" href="<?= e(url('/admin/institucional')) ?>">Institucional</a>
-            <a class="<?= $isComercial ? 'is-active' : '' ?>" href="<?= e(url('/admin/comercial')) ?>">Comercial</a>
-            <a class="<?= $isEnterprise ? 'is-active' : '' ?>" href="<?= e(url('/admin/enterprise')) ?>">Enterprise</a>
-            <a href="<?= e(url('/')) ?>">Pagina publica</a>
+            <?php if ($hasAdminModule): ?>
+                <a class="<?= $isDashboard ? 'is-active' : '' ?>" href="<?= e(url('/admin')) ?>">Dashboard</a>
+                <a class="<?= $isInstitucional ? 'is-active' : '' ?>" href="<?= e(url('/admin/institucional')) ?>">Institucional</a>
+                <a class="<?= $isComercial ? 'is-active' : '' ?>" href="<?= e(url('/admin/comercial')) ?>">Comercial</a>
+            <?php endif; ?>
+            <?php if ($canSeeEnterprise): ?>
+                <a class="<?= $isEnterprise ? 'is-active' : '' ?>" href="<?= e(url('/admin/enterprise')) ?>">Enterprise</a>
+            <?php endif; ?>
+            <?php if (!$hasAdminModule && !$canSeeEnterprise): ?>
+                <span class="app-sidebar-nav-empty">Nenhum modulo administrativo liberado para o plano atual.</span>
+            <?php endif; ?>
+            <a href="<?= e(url('/')) ?>" target="_blank" rel="noopener noreferrer">Pagina publica (nova guia)</a>
         </nav>
 
         <div class="app-sidebar-bottom">
