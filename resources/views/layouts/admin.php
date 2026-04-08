@@ -135,6 +135,9 @@ $isEnterprise = str_starts_with($currentUri, '/admin/enterprise');
 <script src="<?= e(url('/assets/js/shared/form-guard.js')) ?>" defer></script>
 <script src="<?= e(url('/assets/js/shared/uf-dynamic.js')) ?>" defer></script>
 <script src="<?= e(url('/assets/js/shared/municipio-autocomplete.js')) ?>" defer></script>
+<?php if ($isInstitucional): ?>
+<script src="<?= e(url('/assets/js/admin/institutions.js')) ?>" defer></script>
+<?php endif; ?>
 <script src="<?= e(url('/assets/js/shared/ui-enhancements.js')) ?>" defer></script>
 </body>
 </html>
