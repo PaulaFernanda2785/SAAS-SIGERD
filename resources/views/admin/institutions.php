@@ -10,6 +10,8 @@ $perfis = $perfis ?? [];
 $profileGuide = $profileGuide ?? [];
 $vinculos = $vinculos ?? [];
 $options = $options ?? [];
+$tabFilters = is_array($tabFilters ?? null) ? $tabFilters : [];
+$pagination = is_array($pagination ?? null) ? $pagination : [];
 $currentUfFilter = $currentUfFilter ?? null;
 $canSelectAllUf = $canSelectAllUf ?? false;
 $activeTab = $activeTab ?? 'contas';
@@ -22,6 +24,51 @@ $tabs = [
     'perfis' => 'Perfis',
     'vinculos' => 'Vinculos',
 ];
+
+$metricAccounts = (int) ($pagination['contas']['total'] ?? count($accounts));
+$metricUsuarios = (int) ($pagination['usuarios']['total'] ?? count($usuarios));
+$metricVinculos = (int) ($pagination['vinculos']['total'] ?? count($vinculos));
+
+$contasFilter = is_array($tabFilters['contas'] ?? null) ? $tabFilters['contas'] : [];
+$orgaosFilter = is_array($tabFilters['orgaos'] ?? null) ? $tabFilters['orgaos'] : [];
+$unidadesFilter = is_array($tabFilters['unidades'] ?? null) ? $tabFilters['unidades'] : [];
+$usuariosFilter = is_array($tabFilters['usuarios'] ?? null) ? $tabFilters['usuarios'] : [];
+$perfisFilter = is_array($tabFilters['perfis'] ?? null) ? $tabFilters['perfis'] : [];
+$vinculosFilter = is_array($tabFilters['vinculos'] ?? null) ? $tabFilters['vinculos'] : [];
+
+$contasPage = is_array($pagination['contas'] ?? null) ? $pagination['contas'] : [];
+$orgaosPage = is_array($pagination['orgaos'] ?? null) ? $pagination['orgaos'] : [];
+$unidadesPage = is_array($pagination['unidades'] ?? null) ? $pagination['unidades'] : [];
+$usuariosPage = is_array($pagination['usuarios'] ?? null) ? $pagination['usuarios'] : [];
+$perfisPage = is_array($pagination['perfis'] ?? null) ? $pagination['perfis'] : [];
+$vinculosPage = is_array($pagination['vinculos'] ?? null) ? $pagination['vinculos'] : [];
+
+$buildTabQuery = static function (string $tab, array $filters, array $extra = []) use ($currentUfFilter): string {
+    $params = ['aba' => $tab];
+    if ($currentUfFilter !== null) {
+        $params['uf'] = $currentUfFilter;
+    }
+
+    foreach ($filters as $key => $value) {
+        if (!is_string($key) || !is_scalar($value)) {
+            continue;
+        }
+        $text = trim((string) $value);
+        if ($text === '') {
+            continue;
+        }
+        $params[$key] = $text;
+    }
+
+    foreach ($extra as $key => $value) {
+        if (!is_string($key) || !is_scalar($value)) {
+            continue;
+        }
+        $params[$key] = $value;
+    }
+
+    return http_build_query($params);
+};
 ?>
 <section class="landing-hero">
     <div class="landing-hero-inner reveal-on-scroll institution-hero">
@@ -33,15 +80,15 @@ $tabs = [
         </p>
         <div class="landing-metrics">
             <article>
-                <strong><?= e((string) count($accounts)) ?> contas</strong>
+                <strong><?= e((string) $metricAccounts) ?> contas</strong>
                 <span>Contratantes ativas no ambiente</span>
             </article>
             <article>
-                <strong><?= e((string) count($usuarios)) ?> usuarios</strong>
+                <strong><?= e((string) $metricUsuarios) ?> usuarios</strong>
                 <span>Acessos institucionais em operacao</span>
             </article>
             <article>
-                <strong><?= e((string) count($vinculos)) ?> vinculos</strong>
+                <strong><?= e((string) $metricVinculos) ?> vinculos</strong>
                 <span>Relacoes usuario-perfil ativas</span>
             </article>
         </div>
@@ -55,6 +102,7 @@ $tabs = [
     </header>
     <article class="landing-card institution-filter-card">
         <form method="get" action="<?= e(url('/admin/institucional')) ?>" class="institution-filter-form">
+            <input type="hidden" name="aba" value="<?= e((string) $activeTab) ?>">
             <div class="field">
                 <label for="filtro_uf">UF</label>
                 <select
@@ -158,6 +206,31 @@ $tabs = [
 
                 <article class="landing-card institution-table-card">
                     <h3>Contas cadastradas</h3>
+                    <form method="get" action="<?= e(url('/admin/institucional')) ?>" class="institution-list-filter-form">
+                        <input type="hidden" name="aba" value="contas">
+                        <?php if ($currentUfFilter !== null): ?><input type="hidden" name="uf" value="<?= e((string) $currentUfFilter) ?>"><?php endif; ?>
+                        <div class="field">
+                            <label for="f_conta_nome">Nome da conta</label>
+                            <input id="f_conta_nome" name="f_conta_nome" type="text" value="<?= e((string) ($contasFilter['nome'] ?? '')) ?>" placeholder="Buscar por nome fantasia">
+                        </div>
+                        <div class="field">
+                            <label for="f_conta_email">Email principal</label>
+                            <input id="f_conta_email" name="f_conta_email" type="text" value="<?= e((string) ($contasFilter['email'] ?? '')) ?>" placeholder="Buscar por email">
+                        </div>
+                        <div class="field">
+                            <label for="f_conta_status">Status</label>
+                            <select id="f_conta_status" name="f_conta_status">
+                                <option value="">Todos</option>
+                                <option value="ATIVA" <?= ($contasFilter['status'] ?? '') === 'ATIVA' ? 'selected' : '' ?>>ATIVA</option>
+                                <option value="INATIVA" <?= ($contasFilter['status'] ?? '') === 'INATIVA' ? 'selected' : '' ?>>INATIVA</option>
+                                <option value="BLOQUEADA" <?= ($contasFilter['status'] ?? '') === 'BLOQUEADA' ? 'selected' : '' ?>>BLOQUEADA</option>
+                            </select>
+                        </div>
+                        <div class="institution-list-filter-actions">
+                            <button type="submit" class="button button-secondary">Filtrar</button>
+                            <a class="button" href="<?= e(url('/admin/institucional?' . $buildTabQuery('contas', []))) ?>">Limpar</a>
+                        </div>
+                    </form>
                     <div class="table-wrap">
                         <table>
                             <thead>
@@ -171,6 +244,11 @@ $tabs = [
                             </tr>
                             </thead>
                             <tbody>
+                            <?php if ($accounts === []): ?>
+                                <tr>
+                                    <td colspan="6" class="center muted">Nenhuma conta encontrada para o filtro aplicado.</td>
+                                </tr>
+                            <?php endif; ?>
                             <?php foreach ($accounts as $row): ?>
                                 <?php
                                     $statusAtual = (string) $row['status_cadastral'];
@@ -243,6 +321,24 @@ $tabs = [
                             </tbody>
                         </table>
                     </div>
+                    <?php if ((int) ($contasPage['pages'] ?? 1) > 1): ?>
+                        <nav class="institution-pagination" aria-label="Paginacao de contas">
+                            <?php if ((bool) ($contasPage['has_prev'] ?? false)): ?>
+                                <a class="institution-pagination-link" href="<?= e(url('/admin/institucional?' . $buildTabQuery('contas', $contasFilter, ['page_contas' => (int) ($contasPage['prev_page'] ?? 1)]))) ?>">Anterior</a>
+                            <?php else: ?>
+                                <span class="institution-pagination-link is-disabled">Anterior</span>
+                            <?php endif; ?>
+                            <span class="institution-pagination-status">
+                                Pagina <?= e((string) ($contasPage['page'] ?? 1)) ?> de <?= e((string) ($contasPage['pages'] ?? 1)) ?>
+                                - Exibindo <?= e((string) ($contasPage['from'] ?? 0)) ?>-<?= e((string) ($contasPage['to'] ?? 0)) ?> de <?= e((string) ($contasPage['total'] ?? 0)) ?>
+                            </span>
+                            <?php if ((bool) ($contasPage['has_next'] ?? false)): ?>
+                                <a class="institution-pagination-link" href="<?= e(url('/admin/institucional?' . $buildTabQuery('contas', $contasFilter, ['page_contas' => (int) ($contasPage['next_page'] ?? 1)]))) ?>">Proxima</a>
+                            <?php else: ?>
+                                <span class="institution-pagination-link is-disabled">Proxima</span>
+                            <?php endif; ?>
+                        </nav>
+                    <?php endif; ?>
                 </article>
             </div>
         </section>
@@ -279,6 +375,31 @@ $tabs = [
 
                 <article class="landing-card institution-table-card">
                     <h3>Orgaos cadastrados</h3>
+                    <form method="get" action="<?= e(url('/admin/institucional')) ?>" class="institution-list-filter-form">
+                        <input type="hidden" name="aba" value="orgaos">
+                        <?php if ($currentUfFilter !== null): ?><input type="hidden" name="uf" value="<?= e((string) $currentUfFilter) ?>"><?php endif; ?>
+                        <div class="field">
+                            <label for="f_orgao_nome">Nome oficial</label>
+                            <input id="f_orgao_nome" name="f_orgao_nome" type="text" value="<?= e((string) ($orgaosFilter['nome'] ?? '')) ?>" placeholder="Buscar por nome oficial">
+                        </div>
+                        <div class="field">
+                            <label for="f_orgao_sigla">Sigla</label>
+                            <input id="f_orgao_sigla" name="f_orgao_sigla" type="text" value="<?= e((string) ($orgaosFilter['sigla'] ?? '')) ?>" placeholder="Buscar por sigla">
+                        </div>
+                        <div class="field">
+                            <label for="f_orgao_status">Status</label>
+                            <select id="f_orgao_status" name="f_orgao_status">
+                                <option value="">Todos</option>
+                                <option value="ATIVO" <?= ($orgaosFilter['status'] ?? '') === 'ATIVO' ? 'selected' : '' ?>>ATIVO</option>
+                                <option value="INATIVO" <?= ($orgaosFilter['status'] ?? '') === 'INATIVO' ? 'selected' : '' ?>>INATIVO</option>
+                                <option value="BLOQUEADO" <?= ($orgaosFilter['status'] ?? '') === 'BLOQUEADO' ? 'selected' : '' ?>>BLOQUEADO</option>
+                            </select>
+                        </div>
+                        <div class="institution-list-filter-actions">
+                            <button type="submit" class="button button-secondary">Filtrar</button>
+                            <a class="button" href="<?= e(url('/admin/institucional?' . $buildTabQuery('orgaos', []))) ?>">Limpar</a>
+                        </div>
+                    </form>
                     <div class="table-wrap">
                         <table>
                             <thead>
@@ -292,6 +413,11 @@ $tabs = [
                             </tr>
                             </thead>
                             <tbody>
+                            <?php if ($orgaos === []): ?>
+                                <tr>
+                                    <td colspan="6" class="center muted">Nenhum orgao encontrado para o filtro aplicado.</td>
+                                </tr>
+                            <?php endif; ?>
                             <?php foreach ($orgaos as $row): ?>
                                 <?php
                                     $statusAtual = (string) $row['status_orgao'];
@@ -355,6 +481,24 @@ $tabs = [
                             </tbody>
                         </table>
                     </div>
+                    <?php if ((int) ($orgaosPage['pages'] ?? 1) > 1): ?>
+                        <nav class="institution-pagination" aria-label="Paginacao de orgaos">
+                            <?php if ((bool) ($orgaosPage['has_prev'] ?? false)): ?>
+                                <a class="institution-pagination-link" href="<?= e(url('/admin/institucional?' . $buildTabQuery('orgaos', $orgaosFilter, ['page_orgaos' => (int) ($orgaosPage['prev_page'] ?? 1)]))) ?>">Anterior</a>
+                            <?php else: ?>
+                                <span class="institution-pagination-link is-disabled">Anterior</span>
+                            <?php endif; ?>
+                            <span class="institution-pagination-status">
+                                Pagina <?= e((string) ($orgaosPage['page'] ?? 1)) ?> de <?= e((string) ($orgaosPage['pages'] ?? 1)) ?>
+                                - Exibindo <?= e((string) ($orgaosPage['from'] ?? 0)) ?>-<?= e((string) ($orgaosPage['to'] ?? 0)) ?> de <?= e((string) ($orgaosPage['total'] ?? 0)) ?>
+                            </span>
+                            <?php if ((bool) ($orgaosPage['has_next'] ?? false)): ?>
+                                <a class="institution-pagination-link" href="<?= e(url('/admin/institucional?' . $buildTabQuery('orgaos', $orgaosFilter, ['page_orgaos' => (int) ($orgaosPage['next_page'] ?? 1)]))) ?>">Proxima</a>
+                            <?php else: ?>
+                                <span class="institution-pagination-link is-disabled">Proxima</span>
+                            <?php endif; ?>
+                        </nav>
+                    <?php endif; ?>
                 </article>
             </div>
         </section>
@@ -390,6 +534,30 @@ $tabs = [
 
                 <article class="landing-card institution-table-card">
                     <h3>Unidades cadastradas</h3>
+                    <form method="get" action="<?= e(url('/admin/institucional')) ?>" class="institution-list-filter-form">
+                        <input type="hidden" name="aba" value="unidades">
+                        <?php if ($currentUfFilter !== null): ?><input type="hidden" name="uf" value="<?= e((string) $currentUfFilter) ?>"><?php endif; ?>
+                        <div class="field">
+                            <label for="f_unidade_nome">Nome da unidade</label>
+                            <input id="f_unidade_nome" name="f_unidade_nome" type="text" value="<?= e((string) ($unidadesFilter['nome'] ?? '')) ?>" placeholder="Buscar por nome da unidade">
+                        </div>
+                        <div class="field">
+                            <label for="f_unidade_codigo">Codigo da unidade</label>
+                            <input id="f_unidade_codigo" name="f_unidade_codigo" type="text" value="<?= e((string) ($unidadesFilter['codigo'] ?? '')) ?>" placeholder="Buscar por codigo">
+                        </div>
+                        <div class="field">
+                            <label for="f_unidade_status">Status</label>
+                            <select id="f_unidade_status" name="f_unidade_status">
+                                <option value="">Todos</option>
+                                <option value="ATIVA" <?= ($unidadesFilter['status'] ?? '') === 'ATIVA' ? 'selected' : '' ?>>ATIVA</option>
+                                <option value="INATIVA" <?= ($unidadesFilter['status'] ?? '') === 'INATIVA' ? 'selected' : '' ?>>INATIVA</option>
+                            </select>
+                        </div>
+                        <div class="institution-list-filter-actions">
+                            <button type="submit" class="button button-secondary">Filtrar</button>
+                            <a class="button" href="<?= e(url('/admin/institucional?' . $buildTabQuery('unidades', []))) ?>">Limpar</a>
+                        </div>
+                    </form>
                     <div class="table-wrap">
                         <table>
                             <thead>
@@ -404,6 +572,11 @@ $tabs = [
                             </tr>
                             </thead>
                             <tbody>
+                            <?php if ($unidades === []): ?>
+                                <tr>
+                                    <td colspan="7" class="center muted">Nenhuma unidade encontrada para o filtro aplicado.</td>
+                                </tr>
+                            <?php endif; ?>
                             <?php foreach ($unidades as $row): ?>
                                 <?php
                                     $statusAtual = (string) $row['status_unidade'];
@@ -466,13 +639,34 @@ $tabs = [
                             </tbody>
                         </table>
                     </div>
+                    <?php if ((int) ($unidadesPage['pages'] ?? 1) > 1): ?>
+                        <nav class="institution-pagination" aria-label="Paginacao de unidades">
+                            <?php if ((bool) ($unidadesPage['has_prev'] ?? false)): ?>
+                                <a class="institution-pagination-link" href="<?= e(url('/admin/institucional?' . $buildTabQuery('unidades', $unidadesFilter, ['page_unidades' => (int) ($unidadesPage['prev_page'] ?? 1)]))) ?>">Anterior</a>
+                            <?php else: ?>
+                                <span class="institution-pagination-link is-disabled">Anterior</span>
+                            <?php endif; ?>
+                            <span class="institution-pagination-status">
+                                Pagina <?= e((string) ($unidadesPage['page'] ?? 1)) ?> de <?= e((string) ($unidadesPage['pages'] ?? 1)) ?>
+                                - Exibindo <?= e((string) ($unidadesPage['from'] ?? 0)) ?>-<?= e((string) ($unidadesPage['to'] ?? 0)) ?> de <?= e((string) ($unidadesPage['total'] ?? 0)) ?>
+                            </span>
+                            <?php if ((bool) ($unidadesPage['has_next'] ?? false)): ?>
+                                <a class="institution-pagination-link" href="<?= e(url('/admin/institucional?' . $buildTabQuery('unidades', $unidadesFilter, ['page_unidades' => (int) ($unidadesPage['next_page'] ?? 1)]))) ?>">Proxima</a>
+                            <?php else: ?>
+                                <span class="institution-pagination-link is-disabled">Proxima</span>
+                            <?php endif; ?>
+                        </nav>
+                    <?php endif; ?>
                 </article>
             </div>
         </section>
         <section id="tab-panel-usuarios" class="institution-panel" data-tab-panel="usuarios" role="tabpanel">
             <div class="institution-panel-grid">
                 <article class="landing-card institution-form-card">
-                    <h3>Novo usuario</h3>
+                    <div class="institution-card-header">
+                        <h3>Novo usuario</h3>
+                        <button type="button" class="button button-secondary institution-guide-trigger" data-profile-guide-open>Guia de perfis</button>
+                    </div>
                     <form method="post" action="<?= e(url('/admin/institucional/usuarios')) ?>" data-guard-submit="true">
                         <?= App\Support\Csrf::field('admin_usuario_create') ?>
                         <?php if ($currentUfFilter !== null): ?><input type="hidden" name="uf" value="<?= e((string) $currentUfFilter) ?>"><?php endif; ?>
@@ -530,6 +724,31 @@ $tabs = [
 
                 <article class="landing-card institution-table-card">
                     <h3>Usuarios cadastrados</h3>
+                    <form method="get" action="<?= e(url('/admin/institucional')) ?>" class="institution-list-filter-form">
+                        <input type="hidden" name="aba" value="usuarios">
+                        <?php if ($currentUfFilter !== null): ?><input type="hidden" name="uf" value="<?= e((string) $currentUfFilter) ?>"><?php endif; ?>
+                        <div class="field">
+                            <label for="f_usuario_nome">Nome completo</label>
+                            <input id="f_usuario_nome" name="f_usuario_nome" type="text" value="<?= e((string) ($usuariosFilter['nome'] ?? '')) ?>" placeholder="Buscar por nome">
+                        </div>
+                        <div class="field">
+                            <label for="f_usuario_email">Email/login</label>
+                            <input id="f_usuario_email" name="f_usuario_email" type="text" value="<?= e((string) ($usuariosFilter['email'] ?? '')) ?>" placeholder="Buscar por email/login">
+                        </div>
+                        <div class="field">
+                            <label for="f_usuario_status">Status</label>
+                            <select id="f_usuario_status" name="f_usuario_status">
+                                <option value="">Todos</option>
+                                <option value="ATIVO" <?= ($usuariosFilter['status'] ?? '') === 'ATIVO' ? 'selected' : '' ?>>ATIVO</option>
+                                <option value="INATIVO" <?= ($usuariosFilter['status'] ?? '') === 'INATIVO' ? 'selected' : '' ?>>INATIVO</option>
+                                <option value="BLOQUEADO" <?= ($usuariosFilter['status'] ?? '') === 'BLOQUEADO' ? 'selected' : '' ?>>BLOQUEADO</option>
+                            </select>
+                        </div>
+                        <div class="institution-list-filter-actions">
+                            <button type="submit" class="button button-secondary">Filtrar</button>
+                            <a class="button" href="<?= e(url('/admin/institucional?' . $buildTabQuery('usuarios', []))) ?>">Limpar</a>
+                        </div>
+                    </form>
                     <div class="table-wrap">
                         <table>
                             <thead>
@@ -544,6 +763,11 @@ $tabs = [
                             </tr>
                             </thead>
                             <tbody>
+                            <?php if ($usuarios === []): ?>
+                                <tr>
+                                    <td colspan="7" class="center muted">Nenhum usuario encontrado para o filtro aplicado.</td>
+                                </tr>
+                            <?php endif; ?>
                             <?php foreach ($usuarios as $row): ?>
                                 <?php
                                     $statusAtual = (string) $row['status_usuario'];
@@ -620,6 +844,24 @@ $tabs = [
                             </tbody>
                         </table>
                     </div>
+                    <?php if ((int) ($usuariosPage['pages'] ?? 1) > 1): ?>
+                        <nav class="institution-pagination" aria-label="Paginacao de usuarios">
+                            <?php if ((bool) ($usuariosPage['has_prev'] ?? false)): ?>
+                                <a class="institution-pagination-link" href="<?= e(url('/admin/institucional?' . $buildTabQuery('usuarios', $usuariosFilter, ['page_usuarios' => (int) ($usuariosPage['prev_page'] ?? 1)]))) ?>">Anterior</a>
+                            <?php else: ?>
+                                <span class="institution-pagination-link is-disabled">Anterior</span>
+                            <?php endif; ?>
+                            <span class="institution-pagination-status">
+                                Pagina <?= e((string) ($usuariosPage['page'] ?? 1)) ?> de <?= e((string) ($usuariosPage['pages'] ?? 1)) ?>
+                                - Exibindo <?= e((string) ($usuariosPage['from'] ?? 0)) ?>-<?= e((string) ($usuariosPage['to'] ?? 0)) ?> de <?= e((string) ($usuariosPage['total'] ?? 0)) ?>
+                            </span>
+                            <?php if ((bool) ($usuariosPage['has_next'] ?? false)): ?>
+                                <a class="institution-pagination-link" href="<?= e(url('/admin/institucional?' . $buildTabQuery('usuarios', $usuariosFilter, ['page_usuarios' => (int) ($usuariosPage['next_page'] ?? 1)]))) ?>">Proxima</a>
+                            <?php else: ?>
+                                <span class="institution-pagination-link is-disabled">Proxima</span>
+                            <?php endif; ?>
+                        </nav>
+                    <?php endif; ?>
                 </article>
             </div>
         </section>
@@ -648,6 +890,26 @@ $tabs = [
 
                 <article class="landing-card institution-table-card">
                     <h3>Perfis cadastrados</h3>
+                    <form method="get" action="<?= e(url('/admin/institucional')) ?>" class="institution-list-filter-form">
+                        <input type="hidden" name="aba" value="perfis">
+                        <?php if ($currentUfFilter !== null): ?><input type="hidden" name="uf" value="<?= e((string) $currentUfFilter) ?>"><?php endif; ?>
+                        <div class="field">
+                            <label for="f_perfil_nome">Nome do perfil</label>
+                            <input id="f_perfil_nome" name="f_perfil_nome" type="text" value="<?= e((string) ($perfisFilter['nome'] ?? '')) ?>" placeholder="Buscar por nome do perfil">
+                        </div>
+                        <div class="field">
+                            <label for="f_perfil_status">Status</label>
+                            <select id="f_perfil_status" name="f_perfil_status">
+                                <option value="">Todos</option>
+                                <option value="ATIVO" <?= ($perfisFilter['status'] ?? '') === 'ATIVO' ? 'selected' : '' ?>>ATIVO</option>
+                                <option value="INATIVO" <?= ($perfisFilter['status'] ?? '') === 'INATIVO' ? 'selected' : '' ?>>INATIVO</option>
+                            </select>
+                        </div>
+                        <div class="institution-list-filter-actions">
+                            <button type="submit" class="button button-secondary">Filtrar</button>
+                            <a class="button" href="<?= e(url('/admin/institucional?' . $buildTabQuery('perfis', []))) ?>">Limpar</a>
+                        </div>
+                    </form>
                     <div class="table-wrap">
                         <table>
                             <thead>
@@ -660,6 +922,11 @@ $tabs = [
                             </tr>
                             </thead>
                             <tbody>
+                            <?php if ($perfis === []): ?>
+                                <tr>
+                                    <td colspan="5" class="center muted">Nenhum perfil encontrado para o filtro aplicado.</td>
+                                </tr>
+                            <?php endif; ?>
                             <?php foreach ($perfis as $row): ?>
                                 <?php
                                     $statusAtual = (string) $row['status_perfil'];
@@ -718,13 +985,34 @@ $tabs = [
                             </tbody>
                         </table>
                     </div>
+                    <?php if ((int) ($perfisPage['pages'] ?? 1) > 1): ?>
+                        <nav class="institution-pagination" aria-label="Paginacao de perfis">
+                            <?php if ((bool) ($perfisPage['has_prev'] ?? false)): ?>
+                                <a class="institution-pagination-link" href="<?= e(url('/admin/institucional?' . $buildTabQuery('perfis', $perfisFilter, ['page_perfis' => (int) ($perfisPage['prev_page'] ?? 1)]))) ?>">Anterior</a>
+                            <?php else: ?>
+                                <span class="institution-pagination-link is-disabled">Anterior</span>
+                            <?php endif; ?>
+                            <span class="institution-pagination-status">
+                                Pagina <?= e((string) ($perfisPage['page'] ?? 1)) ?> de <?= e((string) ($perfisPage['pages'] ?? 1)) ?>
+                                - Exibindo <?= e((string) ($perfisPage['from'] ?? 0)) ?>-<?= e((string) ($perfisPage['to'] ?? 0)) ?> de <?= e((string) ($perfisPage['total'] ?? 0)) ?>
+                            </span>
+                            <?php if ((bool) ($perfisPage['has_next'] ?? false)): ?>
+                                <a class="institution-pagination-link" href="<?= e(url('/admin/institucional?' . $buildTabQuery('perfis', $perfisFilter, ['page_perfis' => (int) ($perfisPage['next_page'] ?? 1)]))) ?>">Proxima</a>
+                            <?php else: ?>
+                                <span class="institution-pagination-link is-disabled">Proxima</span>
+                            <?php endif; ?>
+                        </nav>
+                    <?php endif; ?>
                 </article>
             </div>
         </section>
         <section id="tab-panel-vinculos" class="institution-panel" data-tab-panel="vinculos" role="tabpanel">
             <div class="institution-panel-grid">
                 <article class="landing-card institution-form-card">
-                    <h3>Vincular usuario-perfil</h3>
+                    <div class="institution-card-header">
+                        <h3>Vincular usuario-perfil</h3>
+                        <button type="button" class="button button-secondary institution-guide-trigger" data-profile-guide-open>Guia de perfis</button>
+                    </div>
                     <form method="post" action="<?= e(url('/admin/institucional/vinculos')) ?>" data-guard-submit="true">
                         <?= App\Support\Csrf::field('admin_usuario_perfil_bind') ?>
                         <?php if ($currentUfFilter !== null): ?><input type="hidden" name="uf" value="<?= e((string) $currentUfFilter) ?>"><?php endif; ?>
@@ -752,6 +1040,30 @@ $tabs = [
 
                 <article class="landing-card institution-table-card">
                     <h3>Vinculos ativos</h3>
+                    <form method="get" action="<?= e(url('/admin/institucional')) ?>" class="institution-list-filter-form">
+                        <input type="hidden" name="aba" value="vinculos">
+                        <?php if ($currentUfFilter !== null): ?><input type="hidden" name="uf" value="<?= e((string) $currentUfFilter) ?>"><?php endif; ?>
+                        <div class="field">
+                            <label for="f_vinculo_usuario">Usuario</label>
+                            <input id="f_vinculo_usuario" name="f_vinculo_usuario" type="text" value="<?= e((string) ($vinculosFilter['usuario'] ?? '')) ?>" placeholder="Buscar por nome do usuario">
+                        </div>
+                        <div class="field">
+                            <label for="f_vinculo_perfil">Perfil</label>
+                            <input id="f_vinculo_perfil" name="f_vinculo_perfil" type="text" value="<?= e((string) ($vinculosFilter['perfil'] ?? '')) ?>" placeholder="Buscar por perfil">
+                        </div>
+                        <div class="field">
+                            <label for="f_vinculo_status">Status</label>
+                            <select id="f_vinculo_status" name="f_vinculo_status">
+                                <option value="">Todos</option>
+                                <option value="ATIVO" <?= ($vinculosFilter['status'] ?? '') === 'ATIVO' ? 'selected' : '' ?>>ATIVO</option>
+                                <option value="INATIVO" <?= ($vinculosFilter['status'] ?? '') === 'INATIVO' ? 'selected' : '' ?>>INATIVO</option>
+                            </select>
+                        </div>
+                        <div class="institution-list-filter-actions">
+                            <button type="submit" class="button button-secondary">Filtrar</button>
+                            <a class="button" href="<?= e(url('/admin/institucional?' . $buildTabQuery('vinculos', []))) ?>">Limpar</a>
+                        </div>
+                    </form>
                     <div class="table-wrap">
                         <table>
                             <thead>
@@ -764,6 +1076,11 @@ $tabs = [
                             </tr>
                             </thead>
                             <tbody>
+                            <?php if ($vinculos === []): ?>
+                                <tr>
+                                    <td colspan="5" class="center muted">Nenhum vinculo encontrado para o filtro aplicado.</td>
+                                </tr>
+                            <?php endif; ?>
                             <?php foreach ($vinculos as $row): ?>
                                 <?php
                                     $statusAtual = (string) ($row['status_vinculo'] ?? 'ATIVO');
@@ -830,6 +1147,24 @@ $tabs = [
                             </tbody>
                         </table>
                     </div>
+                    <?php if ((int) ($vinculosPage['pages'] ?? 1) > 1): ?>
+                        <nav class="institution-pagination" aria-label="Paginacao de vinculos">
+                            <?php if ((bool) ($vinculosPage['has_prev'] ?? false)): ?>
+                                <a class="institution-pagination-link" href="<?= e(url('/admin/institucional?' . $buildTabQuery('vinculos', $vinculosFilter, ['page_vinculos' => (int) ($vinculosPage['prev_page'] ?? 1)]))) ?>">Anterior</a>
+                            <?php else: ?>
+                                <span class="institution-pagination-link is-disabled">Anterior</span>
+                            <?php endif; ?>
+                            <span class="institution-pagination-status">
+                                Pagina <?= e((string) ($vinculosPage['page'] ?? 1)) ?> de <?= e((string) ($vinculosPage['pages'] ?? 1)) ?>
+                                - Exibindo <?= e((string) ($vinculosPage['from'] ?? 0)) ?>-<?= e((string) ($vinculosPage['to'] ?? 0)) ?> de <?= e((string) ($vinculosPage['total'] ?? 0)) ?>
+                            </span>
+                            <?php if ((bool) ($vinculosPage['has_next'] ?? false)): ?>
+                                <a class="institution-pagination-link" href="<?= e(url('/admin/institucional?' . $buildTabQuery('vinculos', $vinculosFilter, ['page_vinculos' => (int) ($vinculosPage['next_page'] ?? 1)]))) ?>">Proxima</a>
+                            <?php else: ?>
+                                <span class="institution-pagination-link is-disabled">Proxima</span>
+                            <?php endif; ?>
+                        </nav>
+                    <?php endif; ?>
                 </article>
             </div>
         </section>

@@ -18,6 +18,7 @@ use Throwable;
 final class InstitutionController
 {
     private const TABS = ['contas', 'orgaos', 'unidades', 'usuarios', 'perfis', 'vinculos'];
+    private const PAGE_SIZE = 10;
 
     public function __construct(
         private readonly ?InstitutionRepository $institutionRepository = null,
@@ -34,21 +35,56 @@ final class InstitutionController
         $currentUf = $this->resolveUfFilter($request, $auth);
         $activeTab = $this->resolveTab((string) $request->input('aba', 'contas'));
         $profiles = $repository->perfis();
+        $tabFilters = $this->resolveTabFilters($request);
+
+        $accountsPage = $this->paginateRecords(
+            $this->filterAccounts($repository->accounts($currentUf), $tabFilters['contas'] ?? []),
+            $this->resolvePage($request, 'page_contas')
+        );
+        $orgaosPage = $this->paginateRecords(
+            $this->filterOrgaos($repository->orgaos($currentUf), $tabFilters['orgaos'] ?? []),
+            $this->resolvePage($request, 'page_orgaos')
+        );
+        $unidadesPage = $this->paginateRecords(
+            $this->filterUnidades($repository->unidades($currentUf), $tabFilters['unidades'] ?? []),
+            $this->resolvePage($request, 'page_unidades')
+        );
+        $usuariosPage = $this->paginateRecords(
+            $this->filterUsuarios($repository->usuarios($currentUf), $tabFilters['usuarios'] ?? []),
+            $this->resolvePage($request, 'page_usuarios')
+        );
+        $perfisPage = $this->paginateRecords(
+            $this->filterPerfis($profiles, $tabFilters['perfis'] ?? []),
+            $this->resolvePage($request, 'page_perfis')
+        );
+        $vinculosPage = $this->paginateRecords(
+            $this->filterVinculos($repository->vinculosUsuarioPerfil($currentUf), $tabFilters['vinculos'] ?? []),
+            $this->resolvePage($request, 'page_vinculos')
+        );
 
         return Response::view('admin/institutions', [
             'title' => 'Gestao Institucional',
             'auth' => $auth,
-            'accounts' => $repository->accounts($currentUf),
-            'orgaos' => $repository->orgaos($currentUf),
-            'unidades' => $repository->unidades($currentUf),
-            'usuarios' => $repository->usuarios($currentUf),
-            'perfis' => $profiles,
+            'accounts' => $accountsPage['items'],
+            'orgaos' => $orgaosPage['items'],
+            'unidades' => $unidadesPage['items'],
+            'usuarios' => $usuariosPage['items'],
+            'perfis' => $perfisPage['items'],
             'profileGuide' => $this->buildProfileGuide($profiles),
-            'vinculos' => $repository->vinculosUsuarioPerfil($currentUf),
+            'vinculos' => $vinculosPage['items'],
             'options' => $repository->contextOptions($currentUf),
             'currentUfFilter' => $currentUf,
             'canSelectAllUf' => $isAdminMaster,
             'activeTab' => $activeTab,
+            'tabFilters' => $tabFilters,
+            'pagination' => [
+                'contas' => $this->paginationMeta($accountsPage),
+                'orgaos' => $this->paginationMeta($orgaosPage),
+                'unidades' => $this->paginationMeta($unidadesPage),
+                'usuarios' => $this->paginationMeta($usuariosPage),
+                'perfis' => $this->paginationMeta($perfisPage),
+                'vinculos' => $this->paginationMeta($vinculosPage),
+            ],
         ], 'admin');
     }
 
@@ -935,6 +971,210 @@ final class InstitutionController
         }
 
         return $guide;
+    }
+
+    private function resolveTabFilters(Request $request): array
+    {
+        return [
+            'contas' => [
+                'nome' => $this->filterText($request->input('f_conta_nome')),
+                'email' => $this->filterText($request->input('f_conta_email')),
+                'status' => $this->filterEnum($request->input('f_conta_status'), ['ATIVA', 'INATIVA', 'BLOQUEADA']),
+            ],
+            'orgaos' => [
+                'nome' => $this->filterText($request->input('f_orgao_nome')),
+                'sigla' => $this->filterText($request->input('f_orgao_sigla')),
+                'status' => $this->filterEnum($request->input('f_orgao_status'), ['ATIVO', 'INATIVO', 'BLOQUEADO']),
+            ],
+            'unidades' => [
+                'nome' => $this->filterText($request->input('f_unidade_nome')),
+                'codigo' => $this->filterText($request->input('f_unidade_codigo')),
+                'status' => $this->filterEnum($request->input('f_unidade_status'), ['ATIVA', 'INATIVA']),
+            ],
+            'usuarios' => [
+                'nome' => $this->filterText($request->input('f_usuario_nome')),
+                'email' => $this->filterText($request->input('f_usuario_email')),
+                'status' => $this->filterEnum($request->input('f_usuario_status'), ['ATIVO', 'INATIVO', 'BLOQUEADO']),
+            ],
+            'perfis' => [
+                'nome' => $this->filterText($request->input('f_perfil_nome')),
+                'status' => $this->filterEnum($request->input('f_perfil_status'), ['ATIVO', 'INATIVO']),
+            ],
+            'vinculos' => [
+                'usuario' => $this->filterText($request->input('f_vinculo_usuario')),
+                'perfil' => $this->filterText($request->input('f_vinculo_perfil')),
+                'status' => $this->filterEnum($request->input('f_vinculo_status'), ['ATIVO', 'INATIVO']),
+            ],
+        ];
+    }
+
+    private function filterAccounts(array $rows, array $filters): array
+    {
+        return array_values(array_filter($rows, function (array $row) use ($filters): bool {
+            if (!$this->matchesContains($row['nome_fantasia'] ?? '', (string) ($filters['nome'] ?? ''))) {
+                return false;
+            }
+            if (!$this->matchesContains($row['email_principal'] ?? '', (string) ($filters['email'] ?? ''))) {
+                return false;
+            }
+            if (!$this->matchesStatus($row['status_cadastral'] ?? '', (string) ($filters['status'] ?? ''))) {
+                return false;
+            }
+
+            return true;
+        }));
+    }
+
+    private function filterOrgaos(array $rows, array $filters): array
+    {
+        return array_values(array_filter($rows, function (array $row) use ($filters): bool {
+            if (!$this->matchesContains($row['nome_oficial'] ?? '', (string) ($filters['nome'] ?? ''))) {
+                return false;
+            }
+            if (!$this->matchesContains($row['sigla'] ?? '', (string) ($filters['sigla'] ?? ''))) {
+                return false;
+            }
+            if (!$this->matchesStatus($row['status_orgao'] ?? '', (string) ($filters['status'] ?? ''))) {
+                return false;
+            }
+
+            return true;
+        }));
+    }
+
+    private function filterUnidades(array $rows, array $filters): array
+    {
+        return array_values(array_filter($rows, function (array $row) use ($filters): bool {
+            if (!$this->matchesContains($row['nome_unidade'] ?? '', (string) ($filters['nome'] ?? ''))) {
+                return false;
+            }
+            if (!$this->matchesContains($row['codigo_unidade'] ?? '', (string) ($filters['codigo'] ?? ''))) {
+                return false;
+            }
+            if (!$this->matchesStatus($row['status_unidade'] ?? '', (string) ($filters['status'] ?? ''))) {
+                return false;
+            }
+
+            return true;
+        }));
+    }
+
+    private function filterUsuarios(array $rows, array $filters): array
+    {
+        return array_values(array_filter($rows, function (array $row) use ($filters): bool {
+            if (!$this->matchesContains($row['nome_completo'] ?? '', (string) ($filters['nome'] ?? ''))) {
+                return false;
+            }
+            if (!$this->matchesContains($row['email_login'] ?? '', (string) ($filters['email'] ?? ''))) {
+                return false;
+            }
+            if (!$this->matchesStatus($row['status_usuario'] ?? '', (string) ($filters['status'] ?? ''))) {
+                return false;
+            }
+
+            return true;
+        }));
+    }
+
+    private function filterPerfis(array $rows, array $filters): array
+    {
+        return array_values(array_filter($rows, function (array $row) use ($filters): bool {
+            if (!$this->matchesContains($row['nome_perfil'] ?? '', (string) ($filters['nome'] ?? ''))) {
+                return false;
+            }
+            if (!$this->matchesStatus($row['status_perfil'] ?? '', (string) ($filters['status'] ?? ''))) {
+                return false;
+            }
+
+            return true;
+        }));
+    }
+
+    private function filterVinculos(array $rows, array $filters): array
+    {
+        return array_values(array_filter($rows, function (array $row) use ($filters): bool {
+            if (!$this->matchesContains($row['usuario_nome'] ?? '', (string) ($filters['usuario'] ?? ''))) {
+                return false;
+            }
+            if (!$this->matchesContains($row['nome_perfil'] ?? '', (string) ($filters['perfil'] ?? ''))) {
+                return false;
+            }
+            if (!$this->matchesStatus($row['status_vinculo'] ?? '', (string) ($filters['status'] ?? ''))) {
+                return false;
+            }
+
+            return true;
+        }));
+    }
+
+    private function resolvePage(Request $request, string $paramName): int
+    {
+        $page = (int) $request->input($paramName, 1);
+        return $page > 0 ? $page : 1;
+    }
+
+    private function paginateRecords(array $rows, int $page): array
+    {
+        $total = count($rows);
+        $perPage = self::PAGE_SIZE;
+        $pages = max(1, (int) ceil($total / $perPage));
+        $currentPage = min(max($page, 1), $pages);
+        $offset = ($currentPage - 1) * $perPage;
+
+        return [
+            'items' => array_slice($rows, $offset, $perPage),
+            'page' => $currentPage,
+            'per_page' => $perPage,
+            'total' => $total,
+            'pages' => $pages,
+            'has_prev' => $currentPage > 1,
+            'has_next' => $currentPage < $pages,
+            'prev_page' => $currentPage > 1 ? $currentPage - 1 : 1,
+            'next_page' => $currentPage < $pages ? $currentPage + 1 : $pages,
+            'from' => $total > 0 ? $offset + 1 : 0,
+            'to' => $total > 0 ? min($offset + $perPage, $total) : 0,
+        ];
+    }
+
+    private function paginationMeta(array $pagination): array
+    {
+        unset($pagination['items']);
+        return $pagination;
+    }
+
+    private function matchesContains(mixed $value, string $needle): bool
+    {
+        $needle = trim($needle);
+        if ($needle === '') {
+            return true;
+        }
+
+        return mb_stripos((string) $value, $needle) !== false;
+    }
+
+    private function matchesStatus(mixed $value, string $filterStatus): bool
+    {
+        $status = trim($filterStatus);
+        if ($status === '') {
+            return true;
+        }
+
+        return strtoupper((string) $value) === strtoupper($status);
+    }
+
+    private function filterText(mixed $value): string
+    {
+        return mb_substr(trim((string) $value), 0, 120);
+    }
+
+    private function filterEnum(mixed $value, array $allowed): string
+    {
+        $candidate = strtoupper(trim((string) $value));
+        if ($candidate === '') {
+            return '';
+        }
+
+        return in_array($candidate, $allowed, true) ? $candidate : '';
     }
 
     private function repository(): InstitutionRepository

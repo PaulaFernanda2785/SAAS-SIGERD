@@ -875,8 +875,8 @@ th {
 
 .institution-panel-grid {
     display: grid;
-    grid-template-columns: minmax(290px, 0.95fr) minmax(0, 1.65fr);
-    gap: 0.85rem;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.9rem;
 }
 
 .institution-form-card h3,
@@ -900,6 +900,79 @@ th {
 
 .institution-table-card table td {
     min-width: 120px;
+}
+
+.institution-list-filter-form {
+    margin: 0.2rem 0 0.85rem;
+    display: grid;
+    gap: 0.62rem;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    align-items: end;
+    border: 1px solid #d7e4f2;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #f7fbff 0%, #eff5ff 100%);
+    padding: 0.7rem;
+}
+
+.institution-list-filter-form .field {
+    margin-bottom: 0;
+}
+
+.institution-list-filter-form input,
+.institution-list-filter-form select {
+    background: #fff;
+}
+
+.institution-list-filter-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.institution-list-filter-actions .button {
+    min-width: 94px;
+}
+
+.institution-pagination {
+    margin-top: 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid #d7e3f1;
+    padding-top: 0.7rem;
+}
+
+.institution-pagination-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 92px;
+    border-radius: 999px;
+    padding: 0.42rem 0.72rem;
+    border: 1px solid #c9dbef;
+    background: #f3f8ff;
+    color: #1c4f7f;
+    font-size: 0.82rem;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.institution-pagination-link:hover {
+    background: #e7f1ff;
+    border-color: #97bbdf;
+}
+
+.institution-pagination-link.is-disabled {
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+.institution-pagination-status {
+    color: #3f5f81;
+    font-size: 0.82rem;
+    font-weight: 700;
 }
 
 .institution-actions {
